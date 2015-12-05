@@ -1,0 +1,31 @@
+
+Terminal  mit    19200-8-N-1    einstellen
+
+RS-232:  PD0, PD1   für den Max verwendne , oder bei STK500  mit Jumper RS232 square verbinden
+
+Receiver: TSOP1738
+          Versorgung +5 V
+          Ausgang an PD2  (int0)  anschliessen  (kann direkt mit STK500 betrieben werden, keine weitere Hardware nötig
+
+Achtung: Beim Programmieren das CAL-Byte für 8 MHz an EEPROM - Adresse 0 schreiben          
+          
+          
+Verhalten, wenn der IR-Code nicht dem NEC entspricht muss noch geprüft werden
+todo: Ergebnis nur ausgeben wenn Valid  
+
+
+Hinweis: nicht das Hyperterminal von Windows nehmen
+
+Problemlösungen:
+
+1) Zeichwirrwar im Terminalfennster
+ ==>  Terminaleinstellugen kontrollieren   19200-8-N-1
+ ==> Sicherstellen, dass beim Programmieren das OSCAL-Byte an die EEPROM Adresse geschrieben wurde (auch das CAL-Byte für den richten Systemtakt nehmen)
+ 
+
+
+
+
+
+                                                        
+ 
