@@ -66,8 +66,8 @@ REV 0.01 27.11.2007 -AW-:
 */
 
 /*=========================== Definitions-Dateien ===========================*/
-#include "/inc/ir_nec.h" 
-#include "/inc/makros.h" 
+#include "../inc/ir_nec.h" 
+#include "../inc/makros.h" 
 
 
 #ifdef  _CHIP_ATMEGA48_

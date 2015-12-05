@@ -1,1 +1,8 @@
 ir_to_pc.hex
+*.rom
+*.hci
+ir_to_pc.prj~
+*.asm
+lst/
+*.c~
+obj/ir_to_pc.cof

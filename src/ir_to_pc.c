@@ -8,8 +8,8 @@ http://www.hpinfotech.com
 Project : Atmega48  NEC IR Protokoll lesen und über RS232 ausgeben
 Version : 1.0.0
 Date    : 19.08.2008
-Author  : Andreas Weick                   
-Company : 
+Author  : Andreas Weick
+Company :
 Comments: Liest infrarot codes und sendet diese an den PC in 4 verschiedenen Formatvarianten
 
 
@@ -23,7 +23,7 @@ Clock frequency     : 8,000000 MHz
 Memory model        : Small
 External SRAM size  : 0
 Data Stack size     : 128
-*****************************************************/   
+*****************************************************/
 
 //############################################################################################
 //                                                                                           #
@@ -31,7 +31,7 @@ Data Stack size     : 128
 //                                                                                           #
 // Nicht vergessen das Calibration Byte an Adresse 0x0000 beim EEPROM zu schreiben           #
 //                                                                                           #
-//############################################################################################                      
+//############################################################################################
 
 
 
@@ -57,26 +57,16 @@ Data Stack size     : 128
   #warning "[ir_to_pc.c]: ATMega168  gewählt"
 #endif
 
-
-
 #include <delay.h>
 
-/* todo test
-// Alphanumeric LCD Module functions
-#asm
-   .equ __lcd_port=0x05 ;PORTB
-#endasm
-#include <lcd.h>
-*/
-
 #include "inc\makros.h"
-#include "inc\eeprom.h"  
+#include "inc\eeprom.h"
 #include "inc\ir_nec.h"
 #include "inc\init.h"
 
 #define DELAY_100MS 4     // Anzahl der 25ms Ticks um auf 100ms zu kommen
 
-void vTimeHdl(void); 
+void vTimeHdl(void);
 void WDT_off(void);
 void WDT_on(void);
 void delay_100ms(void);       // ca. 100 ms Verzögerung
@@ -85,7 +75,7 @@ void delay_1s(void);
 
 
 volatile unsigned char uc25MSEC_CNT=0;
-volatile unsigned char ucSec_Tick=0, uc250ms_Tick=0;            
+volatile unsigned char ucSec_Tick=0, uc250ms_Tick=0;
 volatile unsigned char uc100ms_Tick=0,uc25ms_Tick=0;
 
 
@@ -101,7 +91,7 @@ volatile unsigned char uc100ms_Tick=0,uc25ms_Tick=0;
 #define PARITY_ERROR (1<<UPE)
 #define DATA_OVERRUN (1<<OVR)
 #define DATA_REGISTER_EMPTY (1<<UDRE)
-#define RX_COMPLETE (1<<RXC) 
+#define RX_COMPLETE (1<<RXC)
 
 
 
@@ -146,7 +136,7 @@ char getchar(void)
 char data;
 if (rx_counter0==0) {    // mod-001  by aw  alt: while (rx_counter0==0);
    return 0;  // kein zeichne empfangen
-}   
+}
 
 data=rx_buffer0[rx_rd_index0];
 if (++rx_rd_index0 == RX_BUFFER_SIZE0) rx_rd_index0=0;
@@ -223,7 +213,7 @@ interrupt [TIM2_OVF] void timer2_ovf_isr(void)
 TCNT2=0x3D;                                          // Timer2 für den 25ms Tick intialisieren
 // Place your code here
    uc25ms_Tick=1;
-   if (uc25MSEC_CNT<=255)  uc25MSEC_CNT++;           // Zähler für die 25ms Ticks erhöhen 
+   if (uc25MSEC_CNT<=255)  uc25MSEC_CNT++;           // Zähler für die 25ms Ticks erhöhen
    if (uc100ms_Tick>0) uc100ms_Tick--;               // Zähler für den 100ms Tick dekrementiren
 
 }
@@ -240,7 +230,7 @@ volatile enum printmodus {
 ,  komplett        //  wie normal + die zusätzlich invertierte Bytes
 ,  dump2            //  Hexdump Adresse und Command
 ,  dump4            //  4 Byte Hex-Dump  adresse, /adresse  command, /command
-} enDisplayModus; 
+} enDisplayModus;
 
 void main(void)
 {
@@ -265,10 +255,10 @@ void main(void)
      OSCCAL= i;                       // abspeichern
 
     // vEepromWriteByte(0x0001, i);   // test für eeprom writefuktion und ob vorher richtige EERPom ausgelesen wurde.
-     
-    delay_1s();      
-      
-     
+
+    delay_1s();
+
+
     newData_flag=0;
 
     printf("\n\rIR-Analyse Testprogramm von Andreas Weick (c)2008  Version: 1.0.1\n\r\n\r");
@@ -276,57 +266,49 @@ void main(void)
     printf("           'c' => Bildschirm loeschen\n\r");
     printf("           0-3 => Displaymodus\n\r\n\r");
     printf("\n\rLegende: . :kein IR Signal,  * :FB-Taste gehalten\n\r\n\r");
-    printf("NEC Protokoll:\n\n\rWarte auf IR-Signal:\n\r");  
-    
-    
-// LCD module initialization
-//  ch=lcd_init(16);    
-//  printf("LCD:%d\n\r\n\r",ch );
-//  lcd_putsf("Hello World! ");
-
-
+    printf("NEC Protokoll:\n\n\rWarte auf IR-Signal:\n\r");
 
     while (1)  {
         // Place your code here
         #asm("wdr")    // watchdog reeset
-      
-        vTimeHdl();   
 
-        ch=getchar(); 
+        vTimeHdl();
+
+        ch=getchar();
         if ( ch != 0) {
             switch (ch) {
-            case 'R':   
-                printf("\033[2J\033[1;1");     //Screen löschen und Cursor oben positionieren 
+            case 'R':
+                printf("\033[2J\033[1;1");     //Screen löschen und Cursor oben positionieren
                 delay_100ms();
                 printf("\n\rWatchdog Reset!\n\r");
                 while (1);
                 break;
 
-            case 'c':   
+            case 'c':
                 printf("\033[2J\033[1;1");
                 break;
 
-            case '0': 
+            case '0':
                     printf("\n\r\n\rAnzeigemodus: normal\n\r\n\r");
                     enDisplayModus=normal;
                 break;
- 
-            case '1': 
+
+            case '1':
                     printf("\n\r\n\rAnzeigemodus: komplett\n\r\n\r");
                     enDisplayModus=komplett;
                 break;
-            case '2': 
+            case '2':
                     printf("\n\r\n\rAnzeigemodus: 2 Byte Hexdump ( Adresse, Command )\n\r\n\r");
                     enDisplayModus=dump2;
                 break;
-            case '3': 
+            case '3':
                     printf("\n\r\n\rAnzeigemodus: 4 Byte Hexdump (Adr, /Adr, Com, /Com)\n\r\n\r");
                     enDisplayModus=dump4;
                 break;
             default:
                    printf("\n\r\n\r unbekannter Befehl:%c\n\r",ch);
-             
-            } // end switch 
+
+            } // end switch
         }  // end ch
    } // end while
 
@@ -336,67 +318,67 @@ void main(void)
 
 
 
-void vTimeHdl(void){ 
+void vTimeHdl(void){
        if (uc25MSEC_CNT>=10) {                    // 250ms
           uc25MSEC_CNT=0;
-          
+
           if(uc250ms_Tick<255) uc250ms_Tick++;
 
           if(uc250ms_Tick>=4) {                  // 1s
              uc250ms_Tick=0;
              if(ucSec_Tick<255) ucSec_Tick++;
-          } 
-         
+          }
+
 
        }
 
        if (uc25ms_Tick) { // alle 25ms ausführen
-       
-          // PORTB ^=0x01; 
+
+          // PORTB ^=0x01;
 
 
 
-         if( newData_flag == 1 ) {    
-         
+         if( newData_flag == 1 ) {
+
             switch (enDisplayModus) {
-            
+
             case komplett:
-// del mod-003               printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,~(Address),Command, ~Command);     
+// del mod-003               printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,~(Address),Command, ~Command);
                              printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,Address_Sec,Command, Command_Sec);     // insert mod-003
-               break;     
+               break;
 
             case dump2:
-               printf("\n\r 0x%02X 0x%02X",Address,Command);     
-               break;     
+               printf("\n\r 0x%02X 0x%02X",Address,Command);
+               break;
 
             case dump4:
-//del mod-003               printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,~(Address),Command, ~Command);     
+//del mod-003               printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,~(Address),Command, ~Command);
                             printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,Address_Sec,Command, Command_Sec);     // Insert mod-003
-               break;     
+               break;
 
-         
-            default: 
-               printf("\n\rAdresse: 0x%02X   Command: 0x%02X   ",Address,Command);     
+
+            default:
+               printf("\n\rAdresse: 0x%02X   Command: 0x%02X   ",Address,Command);
             } // end switch
 
 
-             newData_flag=0;  // Flag 
-         } 
+             newData_flag=0;  // Flag
+         }
 
 
 
 
-       
+
            uc25ms_Tick=0;
        }
 
-       if (  ucSec_Tick) {  // alle Sekunde ausführen  
+       if (  ucSec_Tick) {  // alle Sekunde ausführen
 
          if ( (enDisplayModus==normal) || (enDisplayModus==komplett) ) {
             if(Repeat_flag==1) {
                 printf("*");
             }
-            else { 
+            else {
                 printf(".");
             }
          } // end enDisplayModus
@@ -408,11 +390,11 @@ void vTimeHdl(void){
 
 
 void delay_100ms(void) {       // ca. 100 ms Verzögerung
-  uc100ms_Tick =   DELAY_100MS ;  
+  uc100ms_Tick =   DELAY_100MS ;
   do {
         #asm("wdr")  ;
-   } while (uc100ms_Tick);                              
-  
+   } while (uc100ms_Tick);
+
 }
 
 void delay_500ms(void) {  // ca. 0,5s
@@ -436,7 +418,7 @@ void WDT_off(void)   // für atmega48
 
     #asm("cli")     // Interrupt sperren
     #asm("wdr")    // Reset Watchdog
- 
+
     MCUSR &= ~(1<<WDRF);   //  Clear WDRF  Watch dog System Reset Flag
 
     /* Write logical one to WDCE and WDE */
@@ -458,7 +440,7 @@ void WDT_on(void) {
     /* Start timed equence */
     WDTCSR |= (1<<WDCE) | (1<<WDE);
     WDTCSR = (1<<WDE) | (1<<WDP2)| (1<<WDP1) | (1<<WDP0);   /* Set new prescaler(time-out) value = 256K cycles (~2 s) */
-           
+
     #asm("sei")
 }
 
