@@ -32,8 +32,8 @@
 //
 /* keine */
 
-        
-/*================================= Typedefs ================================*/ 
+
+/*================================= Typedefs ================================*/
 
 /*============================= Globale Variablen ===========================*/
 /* del mod-003
@@ -65,11 +65,6 @@ extern unsigned int  Summa;
 // end of del mod-003*/
 
 /*============================ Funktions-Prototypen =========================*/
-
-#pragma used+
-static void vStartTimer0(void);
-static void vStopTimer0(void);
-#pragma used+
 
 #endif /* #ifndef __IR_NEC_H */
 

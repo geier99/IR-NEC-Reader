@@ -6,3 +6,10 @@ ir_to_pc.prj~
 lst/
 *.c~
 obj/ir_to_pc.cof
+*.cbi
+obj/
+*.h~
+*.cci
+*.fct
+*.cof
+*.i

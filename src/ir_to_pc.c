@@ -11,7 +11,7 @@ Date    : 19.08.2008
 Author  : Andreas Weick
 Company :
 Comments: Liest infrarot codes und sendet diese an den PC in 4 verschiedenen Formatvarianten
-
+          UART-Settings: 19200 8N1
 
 Revision: 1.0.1     // mod-003
 Date:   : 28.09.2008
@@ -46,15 +46,15 @@ Data Stack size     : 128
 
 
 #ifdef  _CHIP_ATMEGA48_
-  #include <mega48.h>
-  #include "inc/atmega48bit.h"
-  #warning "[ir_to_pc.c]: ATMega48  gewählt"
+    #include <mega48.h>
+    #include "inc/atmega48bit.h"
+    #warning "[ir_to_pc.c]: ATMega48  gewählt"
 #endif
 
 #ifdef  _CHIP_ATMEGA168_
-  #include <mega168.h>
-  #include "inc/atmega168bit.h"
-  #warning "[ir_to_pc.c]: ATMega168  gewählt"
+    #include <mega168.h>
+    #include "inc/atmega168bit.h"
+    #warning "[ir_to_pc.c]: ATMega168  gewählt"
 #endif
 
 #include <delay.h>
@@ -63,8 +63,12 @@ Data Stack size     : 128
 #include "inc\eeprom.h"
 #include "inc\ir_nec.h"
 #include "inc\init.h"
+#include "inc\lcd.h"
 
 #define DELAY_100MS 4     // Anzahl der 25ms Ticks um auf 100ms zu kommen
+#define MAXBUFFER   20    // RAM Buffer für Strings  19-Zeichenstring
+
+static void printHelp(void);
 
 void vTimeHdl(void);
 void WDT_off(void);
@@ -72,7 +76,6 @@ void WDT_on(void);
 void delay_100ms(void);       // ca. 100 ms Verzögerung
 void delay_500ms(void);
 void delay_1s(void);
-
 
 volatile unsigned char uc25MSEC_CNT=0;
 volatile unsigned char ucSec_Tick=0, uc250ms_Tick=0;
@@ -148,14 +151,6 @@ return data;
 #pragma used-
 #endif
 
-
-
-
-
-
-
-
-
 // end insert mod-001
 
 
@@ -209,13 +204,12 @@ else
 // Timer 2 overflow interrupt service routine   (25ms Tick für die Zeitticks verwendne)
 interrupt [TIM2_OVF] void timer2_ovf_isr(void)
 {
-// Reinitialize Timer 2 value
-TCNT2=0x3D;                                          // Timer2 für den 25ms Tick intialisieren
-// Place your code here
-   uc25ms_Tick=1;
-   if (uc25MSEC_CNT<=255)  uc25MSEC_CNT++;           // Zähler für die 25ms Ticks erhöhen
-   if (uc100ms_Tick>0) uc100ms_Tick--;               // Zähler für den 100ms Tick dekrementiren
-
+    // Reinitialize Timer 2 value
+    TCNT2=0x3D;                                       // Timer2 für den 25ms Tick intialisieren
+    // Place your code here
+    uc25ms_Tick=1;
+    if (uc25MSEC_CNT<=255)  uc25MSEC_CNT++;           // Zähler für die 25ms Ticks erhöhen
+    if (uc100ms_Tick>0) uc100ms_Tick--;               // Zähler für den 100ms Tick dekrementiren
 }
 
 
@@ -225,6 +219,8 @@ TCNT2=0x3D;                                          // Timer2 für den 25ms Tick
 // Declare your global variables here
 
 unsigned char i,ch;
+unsigned char buffer[MAXBUFFER];
+
 volatile enum printmodus {
    normal          //  Adresse + Command in Klartext
 ,  komplett        //  wie normal + die zusätzlich invertierte Bytes
@@ -232,22 +228,25 @@ volatile enum printmodus {
 ,  dump4            //  4 Byte Hex-Dump  adresse, /adresse  command, /command
 } enDisplayModus;
 
-void main(void)
-{
-// Declare your local variables here
+void main(void){
+    // Declare your local variables here
 
     vInit();
+    vInitLcd();
+    vGotoXY_LCD(0,0);
+    vPrintStringF_LCD("IR-NEC Analyzer");
+    vGotoXY_LCD(0,1);
+    vPrintStringF_LCD("(c) 2008 by Andi");
 
- enDisplayModus=normal ;
+    PORTB |= 0x08;  // LCD Licht an
+    printHelp();
 
+    enDisplayModus=normal ;
 
-  delay_ms(100);                   // warte
+    delay_ms(100);                   // warte
 
-  // test
-//  WDT_off();
-
-// Global enable interrupts
-#asm("sei")
+    // Global enable interrupts
+    #asm("sei")
 
 
 
@@ -257,16 +256,7 @@ void main(void)
     // vEepromWriteByte(0x0001, i);   // test für eeprom writefuktion und ob vorher richtige EERPom ausgelesen wurde.
 
     delay_1s();
-
-
     newData_flag=0;
-
-    printf("\n\rIR-Analyse Testprogramm von Andreas Weick (c)2008  Version: 1.0.1\n\r\n\r");
-    printf("Commands:  'R' => Watchdogreset\n\r");
-    printf("           'c' => Bildschirm loeschen\n\r");
-    printf("           0-3 => Displaymodus\n\r\n\r");
-    printf("\n\rLegende: . :kein IR Signal,  * :FB-Taste gehalten\n\r\n\r");
-    printf("NEC Protokoll:\n\n\rWarte auf IR-Signal:\n\r");
 
     while (1)  {
         // Place your code here
@@ -277,6 +267,11 @@ void main(void)
         ch=getchar();
         if ( ch != 0) {
             switch (ch) {
+            case '?':
+            case 'h':
+                printHelp();
+                break;
+
             case 'R':
                 printf("\033[2J\033[1;1");     //Screen löschen und Cursor oben positionieren
                 delay_100ms();
@@ -287,6 +282,12 @@ void main(void)
             case 'c':
                 printf("\033[2J\033[1;1");
                 break;
+
+            case 'l':
+                printf("Toggle LCD - Licht\n\r\n\r");
+                PORTB ^= 0x08;
+                break;
+
 
             case '0':
                     printf("\n\r\n\rAnzeigemodus: normal\n\r\n\r");
@@ -319,103 +320,83 @@ void main(void)
 
 
 void vTimeHdl(void){
-       if (uc25MSEC_CNT>=10) {                    // 250ms
-          uc25MSEC_CNT=0;
+    if (uc25MSEC_CNT>=10) {                    // 250ms
+        uc25MSEC_CNT=0;
 
-          if(uc250ms_Tick<255) uc250ms_Tick++;
+        if(uc250ms_Tick<255) uc250ms_Tick++;
 
-          if(uc250ms_Tick>=4) {                  // 1s
-             uc250ms_Tick=0;
-             if(ucSec_Tick<255) ucSec_Tick++;
-          }
+        if(uc250ms_Tick>=4) {                  // 1s
+         uc250ms_Tick=0;
+         if(ucSec_Tick<255) ucSec_Tick++;
+        }
+    }
 
-
-       }
-
-       if (uc25ms_Tick) { // alle 25ms ausführen
-
-          // PORTB ^=0x01;
-
-
-
-         if( newData_flag == 1 ) {
+    if (uc25ms_Tick) { // alle 25ms ausführen
+        if( newData_flag == 1 ) {
+            sprintf(buffer,"%02X %02X | %02X %02X   ",Address,Address_Sec,Command, Command_Sec);
+            vGotoXY_LCD(0,1);
+            vPrintString_LCD(buffer);
 
             switch (enDisplayModus) {
+                case komplett:
+                    printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,Address_Sec,Command, Command_Sec);
+                    break;
 
-            case komplett:
-// del mod-003               printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,~(Address),Command, ~Command);
-                             printf("\n\rAdresse: 0x%02X , 0x%02X   Command: 0x%02X , 0x%02X   ",Address,Address_Sec,Command, Command_Sec);     // insert mod-003
-               break;
+                case dump2:
+                    printf("\n\r 0x%02X 0x%02X",Address,Command);
+                    break;
 
-            case dump2:
-               printf("\n\r 0x%02X 0x%02X",Address,Command);
-               break;
+                case dump4:
+                    printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,Address_Sec,Command, Command_Sec);
+                    break;
+                default:
+                    printf("\n\rAdresse: 0x%02X   Command: 0x%02X   ",Address,Command);
+                    break;
+            }// end switch enDisplayModus
+            newData_flag=0;  // Flag
+        }
+       uc25ms_Tick=0;
+    }
 
-            case dump4:
-//del mod-003               printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,~(Address),Command, ~Command);
-                            printf("\n\r 0x%02X 0x%02X 0x%02X 0x%02X",Address,Address_Sec,Command, Command_Sec);     // Insert mod-003
-               break;
+    if (  ucSec_Tick) {  // alle Sekunde ausführen
 
-
-            default:
-               printf("\n\rAdresse: 0x%02X   Command: 0x%02X   ",Address,Command);
-            } // end switch
-
-
-             newData_flag=0;  // Flag
-         }
-
-
-
-
-
-           uc25ms_Tick=0;
-       }
-
-       if (  ucSec_Tick) {  // alle Sekunde ausführen
-
-         if ( (enDisplayModus==normal) || (enDisplayModus==komplett) ) {
+        if ( (enDisplayModus==normal) || (enDisplayModus==komplett) ) {
             if(Repeat_flag==1) {
                 printf("*");
             }
             else {
                 printf(".");
             }
-         } // end enDisplayModus
-           ucSec_Tick=0;
-      }
+        } // end enDisplayModus
+        ucSec_Tick=0;
+    }
 }
 
 
 
 
 void delay_100ms(void) {       // ca. 100 ms Verzögerung
-  uc100ms_Tick =   DELAY_100MS ;
-  do {
+    uc100ms_Tick =   DELAY_100MS ;
+    do {
         #asm("wdr")  ;
-   } while (uc100ms_Tick);
-
+    } while (uc100ms_Tick);
 }
 
 void delay_500ms(void) {  // ca. 0,5s
-  unsigned char i;
-  for (i=0;i<5;i++) {
+    unsigned char i;
+    for (i=0;i<5;i++) {
     delay_100ms();
-  }
+    }
 }
 
 void delay_1s(void) {
-   delay_500ms();
-   delay_500ms();
+    delay_500ms();
+    delay_500ms();
 }
-
-
-
 
 
 void WDT_off(void)   // für atmega48
 {
-
     #asm("cli")     // Interrupt sperren
     #asm("wdr")    // Reset Watchdog
 
@@ -444,14 +425,14 @@ void WDT_on(void) {
     #asm("sei")
 }
 
+static void printHelp(void) {
 
-
-
-/*
-
-  mod-001: Empfangsroutine hinzugefügt  RS232
-
-*/
-
-
-
+    printf("\n\rIR-NEC-Code Analyse Testprogramm von Andreas Weick (c)2008-2017  Version: 1.0.2\n\r\n\r");
+    printf("Commands:  'R' => Watchdogreset\n\r");
+    printf("           'c' => Bildschirm loeschen\n\r");
+    printf("           0-3 => Displaymodus\n\r\n\r");
+    printf("           'l' => LCD Light\n\r");
+    printf("         '?,h' => diesen Hilfe Text\n\r\n\r");
+    printf("\n\rLegende: . :kein IR Signal,  * :FB-Taste gehalten\n\r\n\r");
+    printf("NEC Protokoll:\n\n\rWarte auf IR-Signal:\n\r");
+}

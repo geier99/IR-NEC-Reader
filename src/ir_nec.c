@@ -42,7 +42,7 @@
 *     - mega48.h                                                              *
 *     - atmega48bit.h                                                         *
 *                                                                             *
-******************************************************************************/ 
+******************************************************************************/
 /*
 Die Grundidee für die Infrarotauswerte Routine stammt von:
 ****************************************************************************
@@ -66,20 +66,20 @@ REV 0.01 27.11.2007 -AW-:
 */
 
 /*=========================== Definitions-Dateien ===========================*/
-#include "../inc/ir_nec.h" 
-#include "../inc/makros.h" 
+#include "inc/ir_nec.h"
+#include "inc/makros.h"
 
 
 #ifdef  _CHIP_ATMEGA48_
   #include <mega48.h>
   #include "inc/atmega48bit.h"
-  #warning "[ir_nec.c]: ATMega48  gewählt"
+//  #warning "[ir_nec.c]: ATMega48  gewählt"
 #endif
 
 #ifdef  _CHIP_ATMEGA168_
   #include <mega168.h>
   #include "inc/atmega168bit.h"
-  #warning "[ir_nec.c]: ATMega168  gewählt"
+//  #warning "[ir_nec.c]: ATMega168  gewählt"
 #endif
 
 
@@ -98,8 +98,8 @@ bit Repeat_flag;            // 'flag of repetition
 bit Start_flag;             // 'flag of start condition
 bit newData_flag;           // Wird gesetzt, sobald neue Daten eingelesen wurden und zur Ausgabe bereit stehen
 
-unsigned char Address;      // 'byte of address  
-unsigned char Address_Sec;  // 2. Adressbyte (= ~Adress)        // insert mod-003 :  
+unsigned char Address;      // 'byte of address
+unsigned char Address_Sec;  // 2. Adressbyte (= ~Adress)        // insert mod-003 :
 unsigned char Command;      // 'byte of command
 unsigned char Command_Sec;  // 2. Commandbyte (= ~Command)      // insert mod-003:
 
@@ -113,10 +113,10 @@ unsigned char Command_0;    //'indirect byte of command
 
 
 
- 
+
 /*================== Prototypen der dateiglobalen Funktionen ================*/
-void vStartTimer0(void);
-void vStopTimer0(void);
+    static void vStartTimer0(void);
+    static void vStopTimer0(void);
 /*================================ Datei-Code ===============================*/
 
 
@@ -138,7 +138,7 @@ TCNT0=TIMER0_CNT;                         //0xFD;
         Address_0 = 0;
         Command_0 = 0;
         Address = 0;
-        Command = 0; 
+        Command = 0;
 
         Address_Sec=0;    // insert mod-003
         Command_Sec=0;    // insert mod-003
@@ -199,7 +199,7 @@ interrupt [EXT_INT0] void ext_int0_isr(void)
             Command_0 <<= 1;
             Command_0 +=  1;
         }
- 
+
     } // End ' Tik >= 22 And Tik < 116 And Start_flag = 1
 
     if ( (Tik >= 10) && (Tik < 22) && (Start_flag == 1) ) { // Then 'if has happenned from 10 before 21 teaks - have taken "0"
@@ -230,16 +230,16 @@ interrupt [EXT_INT0] void ext_int0_isr(void)
  //'if address or command 16-bit, check does not pass
 // 'Summa = Address_0 + Address_1
  //'If Summa = 255 Then
-        Address = Address_1;  
+        Address = Address_1;
         Address_Sec = Address_0;  // insert mod-003
-        newData_flag= 1;    
+        newData_flag= 1;
  //'Else
  //'Address = 0
  //'End If
 
  //'Summa = Command_0 + Command_1
  //'If Summa = 255 Then
-        Command = Command_1; 
+        Command = Command_1;
         Command_Sec = Command_0;  // insert mod-003
  //'Else
  //'Command = 0
@@ -252,16 +252,16 @@ interrupt [EXT_INT0] void ext_int0_isr(void)
 
  } // end int2 isr
 
-
+#pragma used+
 static void vStartTimer0(void) { // wird zur zeit nicht verwendet, um Platz zu sparen
     TCNT0= TIMER0_CNT ;
     TIMSK0= (1<<TOIE0);        //    Timer0 Interrupt freigeben
 }
 
 static void vStopTimer0(void) { // wird zur zeit nicht verwendet, um Platz zu sparen
-    TIMSK0= 0x00;        //    Timer0 Interrupt sperren                     
+    TIMSK0= 0x00;        //    Timer0 Interrupt sperren
 }
-
+#pragma used-
 
 
 
